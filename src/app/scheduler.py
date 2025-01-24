@@ -15,4 +15,4 @@ async def start_scheduler():
 
 async def stop_scheduler():
     if async_scheduler.running:
-        async_scheduler.shutdown(wait=True)
+        async_scheduler.shutdown(wait=False)

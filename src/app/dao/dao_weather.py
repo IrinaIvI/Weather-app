@@ -83,21 +83,23 @@ async def update_weather_params(
         await db.refresh(new_weather_report)
 
 
-async def api_add_city(city_create: CityScheme, db: AsyncSession):
-    user = await exist_user(user_id=city_create.user_id, db=db)
-    query = await db.execute(select(City).filter(City.name == city_create.name))
+async def api_add_city(
+    city_name: str, latitude: float, longitude: float, user_id: int, db: AsyncSession
+):
+    user = await exist_user(user_id=user_id, db=db)
+    query = await db.execute(select(City).filter(City.name == city_name))
     city = query.scalars().first()
 
     if city:
         raise HTTPException(status_code=404, detail="Данный город уже есть в БД")
 
-    response = await fetch_weather_data(city_create.latitude, city_create.longitude)
+    response = await fetch_weather_data(latitude, longitude)
 
     new_city = City(
-        name=city_create.name,
+        name=city_name,
         user_id=user.id,
-        latitude=city_create.latitude,
-        longitude=city_create.longitude,
+        latitude=latitude,
+        longitude=longitude,
     )
 
     db.add(new_city)
@@ -118,9 +120,9 @@ async def api_add_city(city_create: CityScheme, db: AsyncSession):
 
     async_scheduler.add_job(
         update_weather_params,
-        trigger=IntervalTrigger(seconds=10),
-        args=[city_create.name, city_create.latitude, city_create.longitude],
-        id=f'update_weather_{city_create.city_name}',
+        trigger=IntervalTrigger(minutes=15),
+        args=[city_name, latitude, longitude],
+        id=f'update_weather_{city_name}',
         replace_existing=True,
     )
 
