@@ -120,7 +120,7 @@ async def api_add_city(
 
     async_scheduler.add_job(
         update_weather_params,
-        trigger=IntervalTrigger(minutes=15),
+        trigger=IntervalTrigger(seconds=10),
         args=[city_name, latitude, longitude],
         id=f'update_weather_{city_name}',
         replace_existing=True,
