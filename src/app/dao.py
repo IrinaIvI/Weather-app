@@ -1,6 +1,5 @@
 from fastapi import HTTPException, Depends
 from httpx import AsyncClient
-import logging
 from schemas import ActualWeatherScheme, CityScheme, CityWeatherScheme
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,16 +8,11 @@ from sqlalchemy.future import select
 from rb import RBCityWeather
 from database import async_session
 from sqlalchemy import func, delete
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from scheduler import async_scheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
-logging.basicConfig(level=logging.INFO)
-job_stores = {
-    'default': SQLAlchemyJobStore(url='sqlite:///jobs.sqlite')
-}
-scheduler = AsyncIOScheduler(job_stores=job_stores)
 URL = "https://api.open-meteo.com/v1/forecast?"
+
 
 async def fetch_weather_data(latitude: float, longitude:float) -> dict:
     params = {
@@ -42,12 +36,14 @@ async def fetch_weather_data(latitude: float, longitude:float) -> dict:
 
     return response.json()
 
+
 async def delete_old_weather_report():
     async with async_session() as db:
         yesterday = datetime.now() - timedelta(days=1)
         query = delete(Weather).where(func.date(Weather.updated_at) == yesterday)
         await db.execute(query)
         await db.commit()
+
 
 async def api_get_actual_weather(
     latitude: float, longitude: float
@@ -60,6 +56,7 @@ async def api_get_actual_weather(
         pressure_msl=response["current"]["pressure_msl"],
     )
 
+
 async def update_weather_params(
     city_name: str, latitude: float, longitude: float
 ):
@@ -69,7 +66,7 @@ async def update_weather_params(
         response = await fetch_weather_data(latitude, longitude)
 
         new_weather_report = Weather(
-            city=city.id,
+            city_id=city.id,
             temperature=response["current"]["temperature_2m"],
             relative_humidity=response["current"]["relative_humidity_2m"],
             wind_speed=response["current"]["wind_speed_10m"],
@@ -101,6 +98,7 @@ async def api_add_city(
 
     db.add(new_city)
     await db.commit()
+    await db.refresh(new_city)
 
     city_weather = Weather(
         city_id=new_city.id,
@@ -108,14 +106,15 @@ async def api_add_city(
         relative_humidity=response["current"]["relative_humidity_2m"],
         wind_speed=response["current"]["wind_speed_10m"],
         precipitation=response["current"]["precipitation"],
+        updated_at=datetime.now()
     )
     db.add(city_weather)
     await db.commit()
     await db.refresh(city_weather)
 
-    scheduler.add_job(
+    async_scheduler.add_job(
         update_weather_params,
-        trigger=IntervalTrigger(minutes=15),
+        trigger=IntervalTrigger(seconds=10),
         args=[city_name, latitude, longitude],
         id=f'update_weather_{city_name}',
         replace_existing=True,
