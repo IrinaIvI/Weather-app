@@ -1,21 +1,22 @@
 from fastapi import HTTPException, Depends
 from httpx import AsyncClient
-from schemas import ActualWeatherScheme, CityScheme, CityWeatherScheme
+from src.app.schemas import ActualWeatherScheme, CityScheme, CityWeatherScheme
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from models import City, Weather
+from src.app.models import City, Weather
 from sqlalchemy.future import select
-from rb import RBCityWeather
-from database import async_session
+from src.app.rb import RBCityWeather
+from src.app.database import async_session
 from sqlalchemy import func, delete
-from scheduler import async_scheduler
+from src.app.scheduler import async_scheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
+from src.app.dao.dao_user import exist_user
 
 URL = "https://api.open-meteo.com/v1/forecast?"
 
 
-async def fetch_weather_data(latitude: float, longitude:float) -> dict:
+async def fetch_weather_data(latitude: float, longitude: float) -> dict:
     params = {
         "latitude": latitude,
         "longitude": longitude,
@@ -82,21 +83,21 @@ async def update_weather_params(
         await db.refresh(new_weather_report)
 
 
-async def api_add_city(
-    city_name: str, latitude: float, longitude: float, db: AsyncSession
-):
-    query = await db.execute(select(City).filter(City.name == city_name))
+async def api_add_city(city_create: CityScheme, db: AsyncSession):
+    user = await exist_user(user_id=city_create.user_id, db=db)
+    query = await db.execute(select(City).filter(City.name == city_create.name))
     city = query.scalars().first()
 
     if city:
         raise HTTPException(status_code=404, detail="Данный город уже есть в БД")
 
-    response = await fetch_weather_data(latitude, longitude)
+    response = await fetch_weather_data(city_create.latitude, city_create.longitude)
 
     new_city = City(
-        name=city_name,
-        latitude=latitude,
-        longitude=longitude,
+        name=city_create.name,
+        user_id=user.id,
+        latitude=city_create.latitude,
+        longitude=city_create.longitude,
     )
 
     db.add(new_city)
@@ -118,14 +119,16 @@ async def api_add_city(
     async_scheduler.add_job(
         update_weather_params,
         trigger=IntervalTrigger(seconds=10),
-        args=[city_name, latitude, longitude],
-        id=f'update_weather_{city_name}',
+        args=[city_create.name, city_create.latitude, city_create.longitude],
+        id=f'update_weather_{city_create.city_name}',
         replace_existing=True,
     )
 
 
-async def api_get_cities(db: AsyncSession) -> list[CityScheme]:
-    query = await db.execute(select(City))
+async def api_get_cities(user_id: int, db: AsyncSession) -> list[CityScheme]:
+    user = await exist_user(user_id=user_id, db=db)
+
+    query = await db.execute(select(City).filter(City.user_id == user.id))
     cities = query.scalars().all()
 
     if not cities:
@@ -142,9 +145,13 @@ async def api_get_cities(db: AsyncSession) -> list[CityScheme]:
 
 
 async def api_get_city(
-    db: AsyncSession, request_body: RBCityWeather = Depends()
+    db: AsyncSession, user_id: int, request_body: RBCityWeather = Depends()
 ) -> CityWeatherScheme:
-    query = await db.execute(select(City).filter(City.name == request_body.city_name))
+    user = await exist_user(user_id=user_id, db=db)
+    query = await db.execute(select(City).filter(
+        City.name == request_body.city_name,
+        City.user_id == user_id)
+    )
     city = query.scalars().first()
     if not city:
         raise HTTPException(status_code=400, detail="Данный город не найден")

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from routers import router
-from scheduler import stop_scheduler, start_scheduler
+from src.app.routers import router
+from src.app.scheduler import stop_scheduler, start_scheduler
 import logging
 from contextlib import asynccontextmanager
 

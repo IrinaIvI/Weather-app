@@ -21,3 +21,7 @@ class CityWeatherScheme(BaseModel):
     relative_humidity: Optional[float]
     wind_speed: Optional[float]
     precipitation: Optional[float]
+
+
+class UserScheme(BaseModel):
+    id: int
