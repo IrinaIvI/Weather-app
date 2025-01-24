@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "weatherapp"
+version = "0.1.0"
+description = ""
+authors = ["Irina Ivashko <ira.ivashko.99@gmail.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115.7"
+uvicorn = "^0.34.0"
+httpx = "^0.28.1"
+sqlalchemy = "^2.0.37"
+pydantic = "^2.10.6"
+aiosqlite = "^0.20.0"
+alembic = "^1.14.1"
+apscheduler = "^3.11.0"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.10.0"
+flake8 = "^7.1.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
