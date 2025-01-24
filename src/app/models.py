@@ -47,4 +47,6 @@ class User(Base):
     id: Mapped[int_pk]
     name: Mapped[str] = mapped_column(String(25), nullable=False, unique=True)
 
-    cities: Mapped[List["City"]] = relationship("City", back_populates="user", cascade="all, delete-orphan")
+    cities: Mapped[List["City"]] = relationship(
+        "City", back_populates="user", cascade="all, delete-orphan"
+    )

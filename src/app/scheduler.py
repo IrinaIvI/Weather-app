@@ -1,8 +1,9 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import logging
+
 logging.basicConfig(level=logging.INFO)
 async_scheduler = AsyncIOScheduler()
-async_scheduler.add_jobstore('sqlalchemy', url='sqlite:///./jobs.sqlite')
+async_scheduler.add_jobstore("sqlalchemy", url="sqlite:///./jobs.sqlite")
 
 
 async def start_scheduler():

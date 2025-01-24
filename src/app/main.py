@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from src.app.routers import router
-from src.app.scheduler import stop_scheduler, start_scheduler
+from routers import router
+from scheduler import stop_scheduler, start_scheduler
 import logging
 from contextlib import asynccontextmanager
 
@@ -18,10 +18,12 @@ async def lifespan(app: FastAPI):
     finally:
         await stop_scheduler()
 
+
 app = FastAPI(title="Weather App", lifespan=lifespan)
 
 app.include_router(router)
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="127.0.0.1", port=8000)

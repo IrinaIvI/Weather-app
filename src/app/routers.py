@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends
-from src.app.dao.dao_weather import (
-    api_get_city, api_get_cities, api_get_actual_weather, api_add_city,
+from dao_weather import (
+    api_get_city,
+    api_get_cities,
+    api_get_actual_weather,
+    api_add_city,
 )
-from src.app.dao.dao_user import api_registration
-from src.app.schemas import ActualWeatherScheme, CityScheme, CityWeatherScheme, UserScheme
+from dao_user import api_registration
+from schemas import ActualWeatherScheme, CityScheme, CityWeatherScheme, UserScheme
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.app.rb import RBCityWeather
-from src.app.database import get_db
+from rb import RBCityWeather
+from database import get_db
 from typing import Annotated
 
 router = APIRouter(prefix="/weather_app")
@@ -20,10 +23,7 @@ async def registration(user_name: str, db: Annotated[AsyncSession, Depends(get_d
 
 @router.get("/forecast/", response_model=ActualWeatherScheme)
 async def get_actual_weather(latitude: float, longitude: float):
-    response = await api_get_actual_weather(
-        latitude=latitude,
-        longitude=longitude
-    )
+    response = await api_get_actual_weather(latitude=latitude, longitude=longitude)
     return response
 
 
@@ -36,7 +36,11 @@ async def add_city(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     await api_add_city(
-        user_id=user_id, city_name=city_name, latitude=latitude, longitude=longitude, db=db
+        user_id=user_id,
+        city_name=city_name,
+        latitude=latitude,
+        longitude=longitude,
+        db=db,
     )
 
 

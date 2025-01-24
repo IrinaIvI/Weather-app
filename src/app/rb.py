@@ -1,15 +1,15 @@
-from datetime import datetime, time
+from datetime import time
 
 
 class RBCityWeather:
     def __init__(
-            self,
-            city_name: str,
-            actual_time: time,
-            temperature: bool | None = None,
-            relative_humidity: bool | None = None,
-            wind_speed: bool | None = None,
-            precipitation: bool | None = None,
+        self,
+        city_name: str,
+        actual_time: time,
+        temperature: bool | None = None,
+        relative_humidity: bool | None = None,
+        wind_speed: bool | None = None,
+        precipitation: bool | None = None,
     ):
         self.city_name = city_name
         self.actual_time = actual_time
@@ -29,4 +29,3 @@ class RBCityWeather:
         }
         filtered_data = {key: value for key, value in data.items() if value is not None}
         return filtered_data
-

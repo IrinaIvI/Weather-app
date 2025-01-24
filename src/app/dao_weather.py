@@ -1,17 +1,17 @@
 from fastapi import HTTPException, Depends
 from httpx import AsyncClient
-from src.app.schemas import ActualWeatherScheme, CityScheme, CityWeatherScheme
+from schemas import ActualWeatherScheme, CityScheme, CityWeatherScheme
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.app.models import City, Weather
+from models import City, Weather
 from sqlalchemy.future import select
-from src.app.rb import RBCityWeather
-from src.app.database import async_session
+from rb import RBCityWeather
+from database import async_session
 from sqlalchemy import func, delete
-from src.app.scheduler import async_scheduler
+from scheduler import async_scheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
-from src.app.dao.dao_user import exist_user
+from dao_user import exist_user
 
 URL = "https://api.open-meteo.com/v1/forecast?"
 
@@ -25,7 +25,7 @@ async def fetch_weather_data(latitude: float, longitude: float) -> dict:
             "wind_speed_10m",
             "precipitation",
             "relative_humidity_2m",
-            "pressure_msl"
+            "pressure_msl",
         ],
     }
     async with AsyncClient() as client:
@@ -46,6 +46,7 @@ async def delete_old_weather_report():
         await db.execute(query)
         await db.commit()
 
+
 async_scheduler.add_job(delete_old_weather_report, CronTrigger(hour=0, minute=0))
 
 
@@ -61,9 +62,7 @@ async def api_get_actual_weather(
     )
 
 
-async def update_weather_params(
-    city_name: str, latitude: float, longitude: float
-):
+async def update_weather_params(city_name: str, latitude: float, longitude: float):
     async with async_session() as db:
         query = await db.execute(select(City).filter(City.name == city_name))
         city = query.scalars().first()
@@ -75,7 +74,7 @@ async def update_weather_params(
             relative_humidity=response["current"]["relative_humidity_2m"],
             wind_speed=response["current"]["wind_speed_10m"],
             precipitation=response["current"]["precipitation"],
-            updated_at=datetime.now()
+            updated_at=datetime.now(),
         )
 
         db.add(new_weather_report)
@@ -112,7 +111,7 @@ async def api_add_city(
         relative_humidity=response["current"]["relative_humidity_2m"],
         wind_speed=response["current"]["wind_speed_10m"],
         precipitation=response["current"]["precipitation"],
-        updated_at=datetime.now()
+        updated_at=datetime.now(),
     )
     db.add(city_weather)
     await db.commit()
@@ -120,9 +119,9 @@ async def api_add_city(
 
     async_scheduler.add_job(
         update_weather_params,
-        trigger=IntervalTrigger(seconds=10),
+        trigger=IntervalTrigger(minutes=15),
         args=[city_name, latitude, longitude],
-        id=f'update_weather_{city_name}',
+        id=f"update_weather_{city_name}",
         replace_existing=True,
     )
 
@@ -150,17 +149,16 @@ async def api_get_city(
     db: AsyncSession, user_id: int, request_body: RBCityWeather = Depends()
 ) -> CityWeatherScheme:
     user = await exist_user(user_id=user_id, db=db)
-    query = await db.execute(select(City).filter(
-        City.name == request_body.city_name,
-        City.user_id == user_id)
+    query = await db.execute(
+        select(City).filter(
+            City.name == request_body.city_name, City.user_id == user_id
+        )
     )
     city = query.scalars().first()
     if not city:
         raise HTTPException(status_code=400, detail="Данный город не найден")
 
-    weather_query = await db.execute(
-        select(Weather).filter(Weather.city_id == city.id)
-    )
+    weather_query = await db.execute(select(Weather).filter(Weather.city_id == city.id))
     weather = weather_query.scalars().first()
     time_with_data = datetime.combine(datetime.now().date(), request_body.actual_time)
     if abs(weather.updated_at - time_with_data) >= timedelta(minutes=15):
