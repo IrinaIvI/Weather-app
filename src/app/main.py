@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from routers import router
-from scheduler import async_scheduler
+from scheduler import stop_scheduler, start_scheduler
 import logging
 from contextlib import asynccontextmanager
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -10,12 +11,12 @@ logging.basicConfig(level=logging.INFO)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
-        async_scheduler.start()
+        await start_scheduler()
         yield
     except Exception as e:
         logging.info(f"Ошибка инициализации планировщика: {e}")
     finally:
-        async_scheduler.shutdown(wait=True)
+        await stop_scheduler()
 
 app = FastAPI(title="Weather App", lifespan=lifespan)
 

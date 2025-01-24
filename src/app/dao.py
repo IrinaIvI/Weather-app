@@ -10,6 +10,7 @@ from database import async_session
 from sqlalchemy import func, delete
 from scheduler import async_scheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
 
 URL = "https://api.open-meteo.com/v1/forecast?"
 
@@ -43,6 +44,8 @@ async def delete_old_weather_report():
         query = delete(Weather).where(func.date(Weather.updated_at) == yesterday)
         await db.execute(query)
         await db.commit()
+
+async_scheduler.add_job(delete_old_weather_report, CronTrigger(hour=0, minute=0))
 
 
 async def api_get_actual_weather(
