@@ -19,10 +19,16 @@ poetry shell
 poetry install
 ```
 
-### 3.  Запуск сервера:
+### 3. Применение миграций:
 
 ```bash
-python3 src/app/main.py
+alembic upgrade head
+```
+
+### 4.  Запуск сервера:
+
+```bash
+python src/app/main.py
 ```
 
 # Методы для работы с погодой и городами
