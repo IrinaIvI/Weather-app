@@ -18,8 +18,13 @@ poetry config virtualenvs.in-project true
 poetry shell
 poetry install
 ```
+### 3. Применение миграций:
 
-### 3.  Запуск сервера:
+```bash
+alembic upgrade head
+```
+
+### 4.  Запуск сервера:
 
 ```bash
 python src/app/main.py
