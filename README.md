@@ -22,7 +22,7 @@ poetry install
 ### 3.  Запуск сервера:
 
 ```bash
-python src/app/main.py
+python3 src/app/main.py
 ```
 
 # Методы для работы с погодой и городами
