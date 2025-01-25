@@ -18,7 +18,10 @@ poetry config virtualenvs.in-project true
 poetry shell
 poetry install
 ```
+<<<<<<< HEAD
 
+=======
+>>>>>>> fef82fbf50285ea8cff37027b840254be4285e73
 ### 3. Применение миграций:
 
 ```bash
